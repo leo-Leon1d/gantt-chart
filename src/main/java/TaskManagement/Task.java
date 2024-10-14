@@ -1,16 +1,17 @@
 package TaskManagement;
 
-import ChartManagement.Chart;
-import DoerManagement.Doer;
+import CalendarManagement.Calendar;
+import ChartManagement.Project;
+import DoerManagement.Resource;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 // Класс здаачи
@@ -25,10 +26,12 @@ public class Task {
     private Duration estimatedDuration;
     private LocalDateTime estimatedStartDate;
     private LocalDateTime factualStartDate;
+    private LocalDateTime factualEndDate;
     private Duration factualDuration;
+    private LocalDateTime estimatedEndDate;
 
     // Свойства зависимостей
-    private Doer assignedDoer;
+    private Resource assignedResource;
     private List<Task> dependencies;
     private List<Task> subTasks;
     private TaskStatus status;;
@@ -36,6 +39,12 @@ public class Task {
     // Свойства паузы
     private LocalDateTime pauseStartTime;
     private Duration totalPauseDuration = Duration.ZERO;
+
+    // Календарь
+    private Calendar calendar;
+
+    // Приоритет (по умолчанию 50, от 1 до 100)
+    private int priority;
 
     // Конструктор
     public Task(Long id, String name, Duration estimatedDuration, LocalDateTime estimatedStartDate) {
@@ -45,36 +54,26 @@ public class Task {
         this.estimatedStartDate = estimatedStartDate;
         this.status = TaskStatus.NOT_STARTED;
         this.dependencies = new ArrayList<>();
+        this.priority = 50;
     }
 
     // Возможно ли начало выполнения задачи
     public boolean canStart() {
-        if(this.status==TaskStatus.NOT_STARTED) {
+        if (this.status == TaskStatus.NOT_STARTED) {
             for (Task dependency : dependencies) {
                 if (dependency.getStatus() != TaskStatus.COMPLETED) {
                     return false;
                 }
             }
-            return assignedDoer != null;
-        } return false;
+            return assignedResource != null;
+        }
+        return false;
     }
 
     // Добавление зависимой задачи
     public void addSubTask(Task subTask) {
         this.subTasks.add(subTask);
         subTask.getDependencies().add(this); // Делает текущую задачу зависимостью для подзадачи
-    }
-
-    // Отмена задания
-    public void cancelTask(Task task) {
-        task.setStatus(TaskStatus.CANCELLED);
-        Chart.recalculateProjectSchedule();
-    }
-
-    // Замена исполнителя
-    public void changeDoer(Task task, Doer newDoer) {
-        task.setAssignedDoer(newDoer);
-        Chart.recalculateProjectSchedule();  // Обновляем график после изменения исполнителя
     }
 
     // Начало задачи
@@ -106,20 +105,23 @@ public class Task {
     public void completeTask() {
         if (this.status == TaskStatus.IN_PROGRESS) {
             this.status = TaskStatus.COMPLETED;
-            this.factualDuration = Duration.between(factualStartDate, LocalDateTime.now()).minus(totalPauseDuration);
+            this.factualEndDate = LocalDateTime.now();
+            this.factualDuration = Duration.between(factualStartDate, LocalDateTime.now())
+                    .minus(totalPauseDuration);
             System.out.println("Задача " + name + " завершена. " +
                     "Фактическая продолжительность: " + factualDuration +
-                    "Длительность перерывов: " + totalPauseDuration);
+                    "Длительность перерывов: " + totalPauseDuration +
+                    "Время окончания задачи: " + factualEndDate);
         } else {
             System.out.println("Задачу нельзя завершить, так как она не выполняется.");
         }
     }
 
     // Присвоение исполнителя
-    public void assignDoer(Doer doer) {
+    public void assignDoer(Resource resource) {
         if (this.status == TaskStatus.NOT_STARTED || this.status == TaskStatus.PAUSED) {
-            this.assignedDoer = doer;
-            System.out.println("Задача " + name + " назначена исполнителю " + doer.getName());
+            this.assignedResource = resource;
+            System.out.println("Задача " + name + " назначена исполнителю " + resource.getName());
         } else {
             System.out.println("Невозможно назначить исполнителя на уже начатую или завершённую задачу.");
         }
@@ -131,16 +133,33 @@ public class Task {
     }
 
     // Рассчет даты конца задачи
-    public LocalDateTime calculateEndDate(LocalDateTime startDate, Duration duration, List<LocalDate> holidays, int startHour, int endHour) {
+    public LocalDateTime calculateEndDate(LocalDateTime startDate, Duration duration, Calendar projectCalendar, Calendar resourceCalendar) {
         LocalDateTime endDate = startDate;
-        long hoursLeft = duration.toHours();
-        while (hoursLeft > 0) {
-            endDate = endDate.plusHours(1);
-            if (isWorkHour(endDate, startHour, endHour) && !holidays.contains(endDate.toLocalDate())) {
-                hoursLeft--;
+        long minutesLeft = duration.toMinutes();
+        while (minutesLeft > 0) {
+            endDate = endDate.plusMinutes(1);
+            if (projectCalendar.isWorkHour(endDate) && resourceCalendar.isWorkHour(endDate)) {
+                minutesLeft--;
             }
         }
+
         return endDate;
+    }
+
+    // Есть ли у задачи незавершённые зависимости
+    public boolean hasUnresolvedDependencies() {
+        for (Task dependency : dependencies) {
+            if (dependency.getStatus() != TaskStatus.COMPLETED) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Назначить приоритет
+    public void setPriority(int priority) {
+        if(priority>0 && priority<=100) this.priority = priority;
+        else System.out.println("Priority must be over 0 and less than 100");
     }
 
     // Вывод задачи в консоль
@@ -153,5 +172,20 @@ public class Task {
                 ", factualStartDate=" + factualStartDate +
                 ", factualDuration=" + factualDuration +
                 '}';
+    }
+
+    // Переопределение equals и hashCode для корректной работы в Set
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Task task = (Task) o;
+        return Objects.equals(id, task.id);  // Сравниваем по id
+    }
+
+    // Генерация хэш-кода по id
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

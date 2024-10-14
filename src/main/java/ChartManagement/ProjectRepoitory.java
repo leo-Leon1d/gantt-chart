@@ -5,12 +5,12 @@ import org.springframework.stereotype.Repository;
 
 // Репозиторий
 @Repository
-public class ChartRepoitory {
+public class ProjectRepoitory {
 
     private final JdbcTemplate jdbcTemplate;
 
     // Конструктор
-    public ChartRepoitory(JdbcTemplate jdbcTemplate) {
+    public ProjectRepoitory(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
