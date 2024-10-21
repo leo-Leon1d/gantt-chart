@@ -1,8 +1,7 @@
 package TaskManagement;
 
 import CalendarManagement.Calendar;
-import ChartManagement.Project;
-import DoerManagement.Resource;
+import ResourceManagement.Resource;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -47,13 +46,13 @@ public class Task {
     private int priority;
 
     // Конструктор
-    public Task(Long id, String name, Duration estimatedDuration, LocalDateTime estimatedStartDate) {
-        this.id = id;
+    public Task(String name, Duration estimatedDuration, LocalDateTime estimatedStartDate) {
         this.name = name;
         this.estimatedDuration = estimatedDuration;
         this.estimatedStartDate = estimatedStartDate;
         this.status = TaskStatus.NOT_STARTED;
         this.dependencies = new ArrayList<>();
+        this.subTasks = new ArrayList<>();
         this.priority = 50;
     }
 
@@ -70,10 +69,64 @@ public class Task {
         return false;
     }
 
-    // Добавление зависимой задачи
+    // Добавление "нижней" задачи
     public void addSubTask(Task subTask) {
+        if (this == subTask) {
+            throw new IllegalArgumentException("A task can't be a subtask of itself");
+        }
+        if (createsCycle(this, subTask)) {
+            throw new IllegalArgumentException("Unable to add a subtask " + subTask.getName() + " due to loop creation");
+        }
         this.subTasks.add(subTask);
-        subTask.getDependencies().add(this); // Делает текущую задачу зависимостью для подзадачи
+    }
+
+    // Добавление списка "нижних" задач
+    public void addSubTasks(List<Task> subTasksList) {
+        for (Task subTask : subTasksList) {
+            if (this == subTask) {
+                throw new IllegalArgumentException("A task can't be a subtask of itself");
+            }
+            if (createsCycle(this, subTask)) {
+                throw new IllegalArgumentException("Unable to add a subtask " + subTask.getName() + " due to loop creation");
+            }
+            this.subTasks.add(subTask);
+        }
+    }
+
+    // Добавление "верхней" задачи
+    public void addDependentTask(Task dependentTask) {
+        if (this == dependentTask) {
+            throw new IllegalArgumentException("A task can't depend on itself");
+        }
+        if (createsCycle(dependentTask, this)) {
+            throw new IllegalArgumentException("Unable to add a dependency " + dependentTask.getName() + " due to loop creation");
+        }
+        this.dependencies.add(dependentTask);
+    }
+
+    // Добавление списка "верхних" задач
+    public void addDependentTasks(List<Task> dependentTasksList) {
+        for (Task dependentTask : dependentTasksList) {
+            if (this == dependentTask) {
+                throw new IllegalArgumentException("A task can't depend on itself");
+            }
+            if (createsCycle(dependentTask, this)) {
+                throw new IllegalArgumentException("Unable to add a dependency " + dependentTask.getName() + " due to loop creation");
+            }
+            this.dependencies.add(dependentTask);
+        }
+    }
+
+
+    // Метод для проверки создания цикла
+    private boolean createsCycle(Task parentTask, Task subTask) {
+        if (subTask == parentTask) return true;
+        for (Task dependency : subTask.getDependencies()) {
+            if (createsCycle(parentTask, dependency)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Начало задачи
@@ -162,16 +215,14 @@ public class Task {
         else System.out.println("Priority must be over 0 and less than 100");
     }
 
+    public boolean hasDependencies() {
+        return this.getDependencies()!=null;
+    }
+
     // Вывод задачи в консоль
     @Override
     public String toString() {
-        return "Task{" +
-                "id=" + id +
-                "estimatedDuration=" + estimatedDuration +
-                ", estimatedStartDate=" + estimatedStartDate +
-                ", factualStartDate=" + factualStartDate +
-                ", factualDuration=" + factualDuration +
-                '}';
+        return "Task{" + name + "}";
     }
 
     // Переопределение equals и hashCode для корректной работы в Set

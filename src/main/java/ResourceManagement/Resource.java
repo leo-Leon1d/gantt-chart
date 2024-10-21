@@ -1,4 +1,4 @@
-package DoerManagement;
+package ResourceManagement;
 
 
 import CalendarManagement.Calendar;
@@ -14,8 +14,7 @@ public class Resource {
     private String name;
     private Calendar calendar;
 
-    public Resource(Long id, String name, Calendar calendar) {
-        this.id = id;
+    public Resource(String name, Calendar calendar) {
         this.name = name;
         this.calendar = calendar;
     }

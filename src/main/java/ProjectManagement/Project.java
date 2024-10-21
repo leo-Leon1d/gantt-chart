@@ -1,7 +1,7 @@
-package ChartManagement;
+package ProjectManagement;
 
 import CalendarManagement.Calendar;
-import DoerManagement.Resource;
+import ResourceManagement.Resource;
 import TaskManagement.Task;
 import TaskManagement.TaskStatus;
 import lombok.Getter;
@@ -35,7 +35,6 @@ public class Project {
         Set<Task> visited = new HashSet<>();
         Set<Task> visiting = new HashSet<>();
 
-        // Выполняем топологическую сортировку для каждой задачи
         for (Task task : tasks) {
             topologicalSort(task, visited, visiting, sortedTasks);
         }
@@ -53,7 +52,7 @@ public class Project {
     }
 
     // Добавление исполнителя
-    public void addDoer(Resource resource) {
+    public void addResource(Resource resource) {
         resources.add(resource);
     }
 
@@ -166,9 +165,10 @@ public class Project {
             return;
         }
         if (visiting.contains(task)) {
-            throw new IllegalStateException("Loop found in the dependencies");
+            throw new IllegalStateException("Loop detected in task dependencies: " + task.getName());
         }
         visiting.add(task);
+
         for (Task dependency : task.getDependencies()) {
             topologicalSort(dependency, visited, visiting, sortedTasks);
         }
@@ -176,6 +176,9 @@ public class Project {
         visited.add(task);
         sortedTasks.add(task);
     }
+
+
+
 
     // Получения следующей задачи для ресурса
     public Task getNextTaskForResource(Resource resource) {
@@ -193,7 +196,7 @@ public class Project {
     }
 
     // Замена исполнителя
-    public void changeDoer(Task task, Resource newResource) {
+    public void changeResource(Task task, Resource newResource) {
         task.setAssignedResource(newResource);
         this.recalculateProjectSchedule();
     }
