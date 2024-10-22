@@ -29,42 +29,54 @@ public class Project {
         resources = new ArrayList<>();
     }
 
-    /// Получение сортированных заданий
     // Получение сортированных заданий
     public List<Task> getSortedTasks() {
-        List<Task> sortedTasks = new ArrayList<>(); // Здесь будет итоговая отсортированная последовательность задач
+        List<Task> sortedTasks = new ArrayList<>();
+        List<Task> prioritySorter = new ArrayList<>();
         Map<Task, Integer> taskDepCount = new HashMap<>(); // Количество зависимостей для каждой задачи
-        Queue<Task> readyTasks = new LinkedList<>(); // Очередь для задач, которые готовы к выполнению (нет зависимостей)
+        Queue<Task> readyTasks = new LinkedList<>();
 
         // Инициализируем количество зависимостей для каждой задачи
         for (Task task : tasks) {
-            taskDepCount.put(task, task.getDependencies().size()); // Указываем, сколько у задачи "верхних" зависимостей
+            taskDepCount.put(task, task.getDependencies().size());
             if (task.getDependencies().isEmpty()) {
-                readyTasks.add(task); // Если нет зависимостей, добавляем в очередь готовых задач
+                readyTasks.add(task);
             }
         }
 
-        // Обрабатываем задачи, у которых нет зависимостей, и "развязываем" зависимые задачи
         while (!readyTasks.isEmpty()) {
-            Task currentTask = readyTasks.poll(); // Берем задачу, которая готова к выполнению
-            sortedTasks.add(currentTask); // Добавляем ее в итоговую сортировку
+            Task currentTask = readyTasks.poll();
+            sortedTasks.add(currentTask);
 
-            // Обрабатываем подзадачи, зависящие от текущей
             for (Task subTask : currentTask.getSubTasks()) {
-                taskDepCount.put(subTask, taskDepCount.get(subTask) - 1); // Уменьшаем количество зависимостей
+                taskDepCount.put(subTask, taskDepCount.get(subTask) - 1);
                 if (taskDepCount.get(subTask) == 0) {
-                    readyTasks.add(subTask); // Если больше нет зависимостей, добавляем в очередь
+                    prioritySorter.add(subTask);
                 }
             }
+
+            if (prioritySorter.size() == 1) {
+                readyTasks.add(prioritySorter.get(0));
+            } else if (prioritySorter.size() > 1) {
+                // Сортировка задач по приоритету от наибольшего к наименьшему
+                prioritySorter.sort((task1, task2) -> Integer.compare(task2.getPriority(), task1.getPriority()));
+
+                // Добавление уже отсортированных по приоритету задач в очередь readyTasks
+                readyTasks.addAll(prioritySorter);
+            }
+
+            // Очищаем prioritySorter для следующего уровня
+            prioritySorter.clear();
         }
 
-        // Если количество отсортированных задач не совпадает с количеством всех задач, значит есть цикл
+        // Проверка на наличие циклов
         if (sortedTasks.size() != tasks.size()) {
             throw new IllegalStateException("There is a cycle in the tasks!");
         }
 
         return sortedTasks;
     }
+
 
 
     // Добавление задачи
