@@ -32,11 +32,11 @@ public class GanttChartApplication {
 		schoolProject.addResource(doer2);
 
 		schoolProject.addTask(assembleProject);
-		schoolProject.addTask(research1);
 		schoolProject.addTask(planProject);
-
-		/*
+		schoolProject.addTask(research1);
 		schoolProject.addTask(research2);
+		schoolProject.addTask(submitProject);
+
 		List<Task> researches = new ArrayList<>();
 		researches.add(research1);
 		researches.add(research2);
@@ -45,12 +45,16 @@ public class GanttChartApplication {
 		assembleProject.addDependentTasks(researches);
 		assembleProject.addSubTask(submitProject);
 
-		 */
+		/*
 
+		// Simple test
 		planProject.addSubTask(research1);
 		research1.addSubTask(assembleProject);
 
+		 */
+
 		System.out.println("SORTED TASKS:" + schoolProject.getSortedTasks());
+		schoolProject.displayTasksHierarchy(planProject, 1);
 
 		SpringApplication.run(GanttChartApplication.class, args);
 	}

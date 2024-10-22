@@ -71,49 +71,41 @@ public class Task {
 
     // Добавление "нижней" задачи
     public void addSubTask(Task subTask) {
-        if (this == subTask) {
-            throw new IllegalArgumentException("A task can't be a subtask of itself");
-        }
-        if (createsCycle(this, subTask)) {
-            throw new IllegalArgumentException("Unable to add a subtask " + subTask.getName() + " due to loop creation");
+        if (this == subTask || subTask.getDependencies().contains(this)) {
+            throw new IllegalArgumentException("Unable to add a subtask due to loop creation");
         }
         this.subTasks.add(subTask);
+        subTask.dependencies.add(this);
     }
 
     // Добавление списка "нижних" задач
     public void addSubTasks(List<Task> subTasksList) {
         for (Task subTask : subTasksList) {
-            if (this == subTask) {
-                throw new IllegalArgumentException("A task can't be a subtask of itself");
-            }
-            if (createsCycle(this, subTask)) {
-                throw new IllegalArgumentException("Unable to add a subtask " + subTask.getName() + " due to loop creation");
+            if (this == subTask || subTask.getDependencies().contains(this)) {
+                throw new IllegalArgumentException("Unable to add a subtask due to loop creation");
             }
             this.subTasks.add(subTask);
+            subTask.dependencies.add(this);
         }
     }
 
     // Добавление "верхней" задачи
     public void addDependentTask(Task dependentTask) {
-        if (this == dependentTask) {
-            throw new IllegalArgumentException("A task can't depend on itself");
-        }
-        if (createsCycle(dependentTask, this)) {
-            throw new IllegalArgumentException("Unable to add a dependency " + dependentTask.getName() + " due to loop creation");
+        if (this == dependentTask || dependentTask.getSubTasks().contains(this)) {
+            throw new IllegalArgumentException("Unable to add a dependency due to loop creation");
         }
         this.dependencies.add(dependentTask);
+        dependentTask.subTasks.add(this);
     }
 
     // Добавление списка "верхних" задач
     public void addDependentTasks(List<Task> dependentTasksList) {
         for (Task dependentTask : dependentTasksList) {
-            if (this == dependentTask) {
-                throw new IllegalArgumentException("A task can't depend on itself");
-            }
-            if (createsCycle(dependentTask, this)) {
-                throw new IllegalArgumentException("Unable to add a dependency " + dependentTask.getName() + " due to loop creation");
+            if (this == dependentTask || dependentTask.getSubTasks().contains(this)) {
+                throw new IllegalArgumentException("Unable to add a dependency due to loop creation");
             }
             this.dependencies.add(dependentTask);
+            dependentTask.subTasks.add(this);
         }
     }
 
@@ -225,18 +217,16 @@ public class Task {
         return "Task{" + name + "}";
     }
 
-    // Переопределение equals и hashCode для корректной работы в Set
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        return Objects.equals(id, task.id);  // Сравниваем по id
+        return Objects.equals(name, task.name);
     }
 
-    // Генерация хэш-кода по id
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(name);
     }
 }

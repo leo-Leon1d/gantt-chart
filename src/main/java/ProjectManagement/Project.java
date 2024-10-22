@@ -29,22 +29,43 @@ public class Project {
         resources = new ArrayList<>();
     }
 
+    /// Получение сортированных заданий
     // Получение сортированных заданий
     public List<Task> getSortedTasks() {
-        List<Task> sortedTasks = new ArrayList<>();
-        Set<Task> visited = new HashSet<>();
-        Set<Task> visiting = new HashSet<>();
+        List<Task> sortedTasks = new ArrayList<>(); // Здесь будет итоговая отсортированная последовательность задач
+        Map<Task, Integer> taskDepCount = new HashMap<>(); // Количество зависимостей для каждой задачи
+        Queue<Task> readyTasks = new LinkedList<>(); // Очередь для задач, которые готовы к выполнению (нет зависимостей)
 
+        // Инициализируем количество зависимостей для каждой задачи
         for (Task task : tasks) {
-            topologicalSort(task, visited, visiting, sortedTasks);
+            taskDepCount.put(task, task.getDependencies().size()); // Указываем, сколько у задачи "верхних" зависимостей
+            if (task.getDependencies().isEmpty()) {
+                readyTasks.add(task); // Если нет зависимостей, добавляем в очередь готовых задач
+            }
         }
 
-        sortedTasks.sort(Comparator
-                .comparing(Task::hasUnresolvedDependencies)
-                .thenComparing(Task::getPriority).reversed());
+        // Обрабатываем задачи, у которых нет зависимостей, и "развязываем" зависимые задачи
+        while (!readyTasks.isEmpty()) {
+            Task currentTask = readyTasks.poll(); // Берем задачу, которая готова к выполнению
+            sortedTasks.add(currentTask); // Добавляем ее в итоговую сортировку
+
+            // Обрабатываем подзадачи, зависящие от текущей
+            for (Task subTask : currentTask.getSubTasks()) {
+                taskDepCount.put(subTask, taskDepCount.get(subTask) - 1); // Уменьшаем количество зависимостей
+                if (taskDepCount.get(subTask) == 0) {
+                    readyTasks.add(subTask); // Если больше нет зависимостей, добавляем в очередь
+                }
+            }
+        }
+
+        // Если количество отсортированных задач не совпадает с количеством всех задач, значит есть цикл
+        if (sortedTasks.size() != tasks.size()) {
+            throw new IllegalStateException("There is a cycle in the tasks!");
+        }
 
         return sortedTasks;
     }
+
 
     // Добавление задачи
     public void addTask(Task task) {
@@ -158,7 +179,7 @@ public class Project {
         }
     }
 
-
+/*
     // Рекурсивная функция для топологической сортировки
     private void topologicalSort(Task task, Set<Task> visited, Set<Task> visiting, List<Task> sortedTasks) {
         if (visited.contains(task)) {
@@ -177,7 +198,7 @@ public class Project {
         sortedTasks.add(task);
     }
 
-
+ */
 
 
     // Получения следующей задачи для ресурса
