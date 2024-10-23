@@ -19,12 +19,12 @@ public class Project {
     String name;
     private List<Task> tasks;
     private List<Resource> resources;
-    private Calendar calendar;
+    private Calendar projectCalendar;
 
     // Конструктор
-    public Project(String name, Calendar calendar) {
+    public Project(String name, Calendar projectCalendar) {
         this.name = name;
-        this.calendar = calendar;
+        this.projectCalendar = projectCalendar;
         tasks = new ArrayList<>();
         resources = new ArrayList<>();
     }
@@ -89,29 +89,70 @@ public class Project {
         resources.add(resource);
     }
 
-    // Рассчитать длину проекта
-    public Duration calculateProjectDuration() {
+
+    // Расчет оценочной длительности проекта
+    public Duration calculateProjectEstimatedDuration() {
         if (tasks.isEmpty()) {
             return Duration.ZERO;
         }
 
-        // Самая ранняя дата начала задачи
-        LocalDateTime projectStartDate = tasks.stream()
-                .map(task -> task.getStatus() == TaskStatus.COMPLETED ? task.getFactualStartDate() : task.getEstimatedStartDate())
+        // Самая ранняя оценочная дата начала задачи
+        LocalDateTime estimatedStartDate = tasks.stream()
+                .map(Task::getEstimatedStartDate)
                 .filter(Objects::nonNull)
                 .min(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.now());
+                .orElse(null);
 
-        // Самая поздняя дата окончания задачи
-        LocalDateTime projectEndDate = tasks.stream()
-                .map(task -> task.getStatus() == TaskStatus.COMPLETED ? task.getFactualEndDate() : task.getEstimatedEndDate())
+        // Самая поздняя оценочная дата окончания задачи
+        LocalDateTime estimatedEndDate = tasks.stream()
+                .map(Task::getEstimatedEndDate)
                 .filter(Objects::nonNull)
                 .max(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.now());
+                .orElse(null);
 
-        // Разница между началом и концом проекта
-        return Duration.between(projectStartDate, projectEndDate);
+        if (estimatedStartDate == null || estimatedEndDate == null) {
+            throw new IllegalStateException("Недостаточно данных для расчёта оценочной длительности проекта.");
+        }
+
+        // Возвращаем разницу между оценочной датой начала и окончания
+        return Duration.between(estimatedStartDate, estimatedEndDate);
     }
+
+
+    // Расчет фактической длительности проекта (только при его завершенности)
+    public Duration calculateProjectFactualDuration() {
+        if (tasks.isEmpty()) {
+            return Duration.ZERO;
+        }
+
+        boolean allTasksCompleted = tasks.stream()
+                .allMatch(task -> task.getStatus() == TaskStatus.COMPLETED);
+
+        if (!allTasksCompleted) {
+            throw new IllegalStateException("Проект не завершён. Невозможно рассчитать фактическую длительность.");
+        }
+
+        // Самая ранняя фактическая дата начала проекта
+        LocalDateTime factualStartDate = tasks.stream()
+                .map(Task::getFactualStartDate)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(null);
+
+        // Самая поздняя фактическая дата окончания проекта
+        LocalDateTime factualEndDate = tasks.stream()
+                .map(Task::getFactualEndDate)
+                .filter(Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        if (factualStartDate == null || factualEndDate == null) {
+            throw new IllegalStateException("Недостаточно данных для расчёта фактической длительности проекта.");
+        }
+
+        return Duration.between(factualStartDate, factualEndDate);
+    }
+
 
     // Пересчёт расписания проекта
     public void recalculateProjectSchedule() {
@@ -129,7 +170,7 @@ public class Project {
                 }
 
                 // Дата окончания задачи
-                LocalDateTime endDate = task.calculateEndDate(startDate, task.getEstimatedDuration(), calendar, task.getAssignedResource().getCalendar());
+                LocalDateTime endDate = task.calculateEndDate(startDate, task.getEstimatedDuration(), projectCalendar, task.getAssignedResource().getResourceCalendar());
                 if (!endDate.equals(task.getEstimatedEndDate())) {
                     task.setEstimatedEndDate(endDate);
                     updatedTasks.add(task);
@@ -169,7 +210,7 @@ public class Project {
             }
 
             // Пересчет даты окончания зависимой задачи
-            LocalDateTime newEndDate = dependentTask.calculateEndDate(newStartDate, dependentTask.getEstimatedDuration(), calendar, dependentTask.getAssignedResource().getCalendar());
+            LocalDateTime newEndDate = dependentTask.calculateEndDate(newStartDate, dependentTask.getEstimatedDuration(), projectCalendar, dependentTask.getAssignedResource().getResourceCalendar());
             if (!newEndDate.equals(dependentTask.getEstimatedEndDate())) {
                 dependentTask.setEstimatedEndDate(newEndDate);
             }
@@ -184,7 +225,7 @@ public class Project {
                 subTask.setEstimatedStartDate(newStartDate);
             }
 
-            LocalDateTime newEndDate = subTask.calculateEndDate(newStartDate, subTask.getEstimatedDuration(), calendar, subTask.getAssignedResource().getCalendar());
+            LocalDateTime newEndDate = subTask.calculateEndDate(newStartDate, subTask.getEstimatedDuration(), projectCalendar, subTask.getAssignedResource().getResourceCalendar());
             if (!newEndDate.equals(subTask.getEstimatedEndDate())) {
                 subTask.setEstimatedEndDate(newEndDate);
             }

@@ -41,6 +41,7 @@ public class Task {
 
     // Календарь
     private Calendar calendar;
+    private Calendar resourceCalendar;
 
     // Приоритет (по умолчанию 50, от 1 до 100)
     private int priority;
@@ -50,6 +51,7 @@ public class Task {
         this.name = name;
         this.estimatedDuration = estimatedDuration;
         this.estimatedStartDate = estimatedStartDate;
+        this.estimatedEndDate = calculateEndDate(estimatedStartDate, estimatedDuration, calendar, resourceCalendar);
         this.status = TaskStatus.NOT_STARTED;
         this.dependencies = new ArrayList<>();
         this.subTasks = new ArrayList<>();
@@ -163,7 +165,7 @@ public class Task {
     }
 
     // Присвоение исполнителя
-    public void assignDoer(Resource resource) {
+    public void assignResource(Resource resource) {
         if (this.status == TaskStatus.NOT_STARTED || this.status == TaskStatus.PAUSED) {
             this.assignedResource = resource;
             System.out.println("Задача " + name + " назначена исполнителю " + resource.getName());
@@ -177,18 +179,43 @@ public class Task {
         return dateTime.getHour() >= startHour && dateTime.getHour() < endHour && dateTime.getDayOfWeek() != DayOfWeek.SATURDAY && dateTime.getDayOfWeek() != DayOfWeek.SUNDAY;
     }
 
-    // Рассчет даты конца задачи
+    // Расчет оценочной даты окончания задачи
     public LocalDateTime calculateEndDate(LocalDateTime startDate, Duration duration, Calendar projectCalendar, Calendar resourceCalendar) {
         LocalDateTime endDate = startDate;
         long minutesLeft = duration.toMinutes();
         while (minutesLeft > 0) {
             endDate = endDate.plusMinutes(1);
-            if (projectCalendar.isWorkHour(endDate) && resourceCalendar.isWorkHour(endDate)) {
+            boolean isWorkHour = true;
+
+            if (projectCalendar != null) {
+                isWorkHour = projectCalendar.isWorkHour(endDate);
+            }
+
+            if (resourceCalendar != null) {
+                isWorkHour = isWorkHour && resourceCalendar.isWorkHour(endDate);
+            }
+
+            if (isWorkHour) {
                 minutesLeft--;
             }
         }
-
         return endDate;
+    }
+
+
+    // Обновление estimatedEndDate при изменении estimatedStartDate или estimatedDuration
+    public void updateEstimatedEndDate() {
+        this.estimatedEndDate = calculateEndDate(this.estimatedStartDate, this.estimatedDuration, this.calendar, this.resourceCalendar);
+    }
+
+    public void setEstimatedStartDate(LocalDateTime newStartDate) {
+        this.estimatedStartDate = newStartDate;
+        updateEstimatedEndDate();
+    }
+
+    public void setEstimatedDuration(Duration newDuration) {
+        this.estimatedDuration = newDuration;
+        updateEstimatedEndDate();
     }
 
     // Есть ли у задачи незавершённые зависимости
