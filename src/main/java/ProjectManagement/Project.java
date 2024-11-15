@@ -20,6 +20,10 @@ public class Project {
     private List<Task> tasks;
     private List<Resource> resources;
     private Calendar projectCalendar;
+    private LocalDateTime estimatedStartDate;
+    private LocalDateTime factualStartDate;
+    private LocalDateTime estimatedEndDate;
+    private LocalDateTime factualEndDate;
 
     // Конструктор
     public Project(String name, Calendar projectCalendar) {
@@ -77,6 +81,87 @@ public class Project {
         return sortedTasks;
     }
 
+    public void calculateSchedule() {
+        if (estimatedStartDate == null) {
+            throw new IllegalStateException("Project start date must be set before calculating the schedule.");
+        }
+
+        // Сортируем задачи с учетом зависимостей
+        List<Task> sortedTasks = getSortedTasks();
+
+        // Инициализация времени доступности исполнителей
+        Map<Resource, LocalDateTime> resourceAvailability = new HashMap<>();
+        for (Resource resource : resources) {
+            resourceAvailability.put(resource, estimatedStartDate);
+        }
+
+        // Расчет расписания задач
+        for (Task task : sortedTasks) {
+            Resource assignedResource = task.getAssignedResource();
+            if (assignedResource == null) {
+                throw new IllegalStateException("Task '" + task.getName() + "' has no assigned resource.");
+            }
+
+            // Определяем, когда можно начать задачу
+            LocalDateTime taskStartDate = calculateStartDateForTask(task, resourceAvailability);
+
+            // Учитываем длительность задачи
+            LocalDateTime taskEndDate = calculateTaskEndDate(taskStartDate, task.getEstimatedDuration(), assignedResource.getResourceCalendar());
+
+            // Устанавливаем рассчитанные даты
+            task.setEstimatedStartDate(taskStartDate);
+            task.setEstimatedEndDate(taskEndDate);
+
+            // Обновляем время доступности исполнителя
+            resourceAvailability.put(assignedResource, taskEndDate);
+        }
+    }
+
+
+    private LocalDateTime calculateStartDateForTask(Task task, Map<Resource, LocalDateTime> resourceAvailability) {
+        LocalDateTime earliestStart = estimatedStartDate;
+
+        // Учитываем зависимости
+        for (Task dependency : task.getDependencies()) {
+            if (dependency.getEstimatedEndDate() != null && dependency.getEstimatedEndDate().isAfter(earliestStart)) {
+                earliestStart = dependency.getEstimatedEndDate();
+            }
+        }
+
+        // Учитываем доступность исполнителя
+        Resource assignedResource = task.getAssignedResource();
+        LocalDateTime resourceAvailable = resourceAvailability.getOrDefault(assignedResource, estimatedStartDate);
+        if (resourceAvailable.isAfter(earliestStart)) {
+            earliestStart = resourceAvailable;
+        }
+
+        // Учитываем календарь проекта
+        return projectCalendar.getNextWorkingTime(earliestStart);
+    }
+
+    private LocalDateTime calculateTaskEndDate(LocalDateTime startDate, Duration duration, Calendar resourceCalendar) {
+        LocalDateTime currentDate = startDate;
+        long remainingHours = duration.toHours();
+
+        while (remainingHours > 0) {
+            // Проверяем, является ли текущий день рабочим
+            if (resourceCalendar.isWorkDay(currentDate.toLocalDate())) {
+                // Сколько часов можно использовать в текущий рабочий день
+                long availableHours = resourceCalendar.workHourLeftForDay(currentDate.toLocalDate(), currentDate);
+                if (remainingHours <= availableHours) {
+                    return currentDate.plusHours(remainingHours);
+                } else {
+                    remainingHours -= availableHours;
+                    currentDate = currentDate.plusDays(1).withHour(resourceCalendar.getStartHour()).withMinute(0);
+                }
+            } else {
+                // Если день нерабочий, переходим к следующему
+                currentDate = currentDate.plusDays(1).withHour(resourceCalendar.getStartHour()).withMinute(0);
+            }
+        }
+
+        return currentDate;
+    }
 
 
     // Добавление задачи

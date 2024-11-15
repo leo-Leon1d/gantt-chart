@@ -3,8 +3,10 @@ package CalendarManagement;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Set;
 
 @Getter
@@ -12,14 +14,14 @@ import java.util.Set;
 public class Calendar {
 
     private Set<LocalDate> holidays; // Набор выходных дней/праздников
-    private int workStartHour; // Начало рабочего дня
-    private int workEndHour; // Конец рабочего дня
+    private int startHour; // Начало рабочего дня
+    private int endHour; // Конец рабочего дня
 
     // Конструктор с указанием графика работы и списка праздников
-    public Calendar(int workStartHour, int workEndHour, Set<LocalDate> holidays) {
+    public Calendar(int startHour, int endHour, Set<LocalDate> holidays) {
         this.holidays = holidays;
-        this.workStartHour = workStartHour;
-        this.workEndHour = workEndHour;
+        this.startHour = startHour;
+        this.endHour = endHour;
     }
 
     // Добавление выходного дня
@@ -34,7 +36,7 @@ public class Calendar {
 
     // Проверка, является ли данный день рабочим
     public boolean isWorkDay(LocalDate date) {
-        return !holidays.contains(date) && date.getDayOfWeek().getValue() < 6; // Пн-Пт
+        return holidays==null || !holidays.contains(date) && date.getDayOfWeek().getValue() < 6; // Пн-Пт
     }
 
     // Проверка, является ли данное время рабочим
@@ -42,7 +44,58 @@ public class Calendar {
         LocalDate date = dateTime.toLocalDate();
         int hour = dateTime.getHour();
 
-        return isWorkDay(date) && (hour >= workStartHour) && (hour <= workEndHour);
+        return isWorkDay(date) && (hour >= startHour) && (hour <= endHour);
     }
+
+    public LocalDateTime getNextWorkingTime(LocalDateTime currentDateTime) {
+        LocalDate currentDate = currentDateTime.toLocalDate();
+
+        // Если текущий день нерабочий, переносим на следующий рабочий день
+        while (!isWorkDay(currentDate)) {
+            currentDate = currentDate.plusDays(1);
+        }
+
+        // Определяем начало рабочего дня
+        LocalDateTime startOfWorkDay = LocalDateTime.of(currentDate, LocalTime.of(getStartHour(), 0));
+
+        // Если текущее время уже позже конца рабочего дня, переносим на следующий рабочий день
+        if (currentDateTime.isAfter(startOfWorkDay.withHour(getEndHour()))) {
+            return LocalDateTime.of(currentDate.plusDays(1), LocalTime.of(getStartHour(), 0));
+        }
+
+        // Если текущее время находится в пределах рабочего дня, возвращаем текущее время
+        if (currentDateTime.isAfter(startOfWorkDay)) {
+            return currentDateTime;
+        }
+
+        // Если текущее время до начала рабочего дня, возвращаем начало рабочего дня
+        return startOfWorkDay;
+    }
+
+
+    public long workHourLeftForDay(LocalDate date, LocalDateTime currentDateTime) {
+        if (!isWorkDay(date)) {
+            return 0;
+        }
+
+        // Определяем начало и конец рабочего дня
+        LocalDateTime startOfWorkDay = LocalDateTime.of(date, LocalTime.of(getStartHour(), 0));
+        LocalDateTime endOfWorkDay = LocalDateTime.of(date, LocalTime.of(getEndHour(), 0));
+
+        // Если текущее время уже позже конца рабочего дня, возвращаем 0
+        if (currentDateTime.isAfter(endOfWorkDay)) {
+            return 0;
+        }
+
+        // Если текущее время раньше начала рабочего дня, возвращаем все часы
+        if (currentDateTime.isBefore(startOfWorkDay)) {
+            return Duration.between(startOfWorkDay, endOfWorkDay).toHours();
+        }
+
+        // Возвращаем оставшиеся часы
+        return Duration.between(currentDateTime, endOfWorkDay).toHours();
+    }
+
+
 
 }

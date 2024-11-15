@@ -6,6 +6,7 @@ import TaskManagement.Task;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 // Класс исполнителя
@@ -30,6 +31,17 @@ public class Resource {
         for(Task task : tasks) {
             task.assignResource(this);
         }
+    }
+
+    // Проверка доступности исполнителя в определенное время
+    public boolean isAvailable(LocalDateTime startTime, int durationHours) {
+        for (int i = 0; i < durationHours; i++) {
+            LocalDateTime dateTime = startTime.plusHours(i);
+            if (!resourceCalendar.isWorkHour(dateTime)) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }

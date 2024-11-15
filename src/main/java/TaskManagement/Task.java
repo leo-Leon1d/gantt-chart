@@ -47,10 +47,9 @@ public class Task {
     private int priority;
 
     // Конструктор
-    public Task(String name, Duration estimatedDuration, LocalDateTime estimatedStartDate) {
+    public Task(String name, Duration estimatedDuration) {
         this.name = name;
         this.estimatedDuration = estimatedDuration;
-        this.estimatedStartDate = estimatedStartDate;
         this.estimatedEndDate = calculateEndDate(estimatedStartDate, estimatedDuration, calendar, resourceCalendar);
         this.status = TaskStatus.NOT_STARTED;
         this.dependencies = new ArrayList<>();
@@ -181,26 +180,43 @@ public class Task {
 
     // Расчет оценочной даты окончания задачи
     public LocalDateTime calculateEndDate(LocalDateTime startDate, Duration duration, Calendar projectCalendar, Calendar resourceCalendar) {
-        LocalDateTime endDate = startDate;
+        if (startDate == null || duration == null) {
+            return null;
+        }
+
+        LocalDateTime currentDateTime = startDate;
         long minutesLeft = duration.toMinutes();
+
         while (minutesLeft > 0) {
-            endDate = endDate.plusMinutes(1);
+            // Проверяем, является ли текущее время рабочим
             boolean isWorkHour = true;
 
             if (projectCalendar != null) {
-                isWorkHour = projectCalendar.isWorkHour(endDate);
+                isWorkHour = projectCalendar.isWorkHour(currentDateTime);
             }
 
             if (resourceCalendar != null) {
-                isWorkHour = isWorkHour && resourceCalendar.isWorkHour(endDate);
+                isWorkHour = isWorkHour && resourceCalendar.isWorkHour(currentDateTime);
             }
 
             if (isWorkHour) {
-                minutesLeft--;
+                minutesLeft--; // Уменьшаем оставшееся время только в рабочие часы
+            }
+
+            // Переход к следующей минуте
+            currentDateTime = currentDateTime.plusMinutes(1);
+
+            // Если мы вышли за рамки рабочего дня, переносим на начало следующего рабочего дня
+            if (!isWorkHour) {
+                currentDateTime = projectCalendar != null
+                        ? projectCalendar.getNextWorkingTime(currentDateTime)
+                        : resourceCalendar.getNextWorkingTime(currentDateTime);
             }
         }
-        return endDate;
+
+        return currentDateTime;
     }
+
 
 
     // Обновление estimatedEndDate при изменении estimatedStartDate или estimatedDuration

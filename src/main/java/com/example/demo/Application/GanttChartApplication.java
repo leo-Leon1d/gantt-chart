@@ -21,35 +21,42 @@ public class GanttChartApplication {
 
 	public static void main(String[] args) {
 
-		Task planProject = new Task("Project Planning", Duration.ofHours(4), LocalDateTime.of(2024, 11, 1, 8,0));
-		Task research1 = new Task("First Research", Duration.ofHours(8), LocalDateTime.of(2024, 11, 1, 14,0));
-		Task research2 = new Task("Second Research", Duration.ofHours(8), LocalDateTime.of(2024, 11, 2, 8,0));
-		Task research3 = new Task("Third Research", Duration.ofHours(4), LocalDateTime.of(2024, 11, 2, 18,0));
-		Task assembleProject = new Task("Project Assembling", Duration.ofHours(2), LocalDateTime.of(2024, 11, 3, 10,0));
-		Task submitProject = new Task("Project Submition", Duration.ofHours(1), LocalDateTime.of(2024, 11, 4, 8,0));
+		// Коментарии в конце иннициализации каждой задачи можно не учитывать, они ничего не значат, просто для себя
 
-		Task createWebPage = new Task("Web Page Creation", Duration.ofHours(24), LocalDateTime.of(2024, 11, 14, 8,0));
-		Task createProduct = new Task("Product Creation", Duration.ofHours(36), LocalDateTime.of(2024, 11, 19, 8,0));
-		Task planMarketing = new Task("Marketing Planning", Duration.ofHours(4), LocalDateTime.of(2024, 12, 3, 8,0));
-		Task startSales = new Task("Sales Start", Duration.ofHours(48), LocalDateTime.of(2024, 12, 5, 8,0));
+		Task planProject = new Task("Project Planning", Duration.ofHours(4));
+		Task research1 = new Task("First Research", Duration.ofHours(8));
+		Task research2 = new Task("Second Research", Duration.ofHours(8));
+		Task research3 = new Task("Third Research", Duration.ofHours(4));
+		Task assembleProject = new Task("Project Assembling", Duration.ofHours(2));
+		Task submitProject = new Task("Project Submition", Duration.ofHours(1));
 
-		Task buyMcLaren = new Task("Buying McLaren", Duration.ofHours(1), LocalDateTime.of(2025, 4, 1, 12,0));
-		Task buyMansion = new Task("Buying Mansion", Duration.ofHours(1), LocalDateTime.of(2025, 7, 1, 12,0));
-		Task buyPrivateJet = new Task("Buying Private Jet", Duration.ofHours(1), LocalDateTime.of(2025, 10, 1, 12,0));
+		Task createWebPage = new Task("Web Page Creation", Duration.ofHours(24));
+		Task createProduct = new Task("Product Creation", Duration.ofHours(36));
+		Task planMarketing = new Task("Marketing Planning", Duration.ofHours(4));
+		Task startSales = new Task("Sales Start", Duration.ofHours(48));
 
+		Task buyMcLaren = new Task("Buying McLaren", Duration.ofHours(1));
+		Task buyMansion = new Task("Buying Mansion", Duration.ofHours(1));
+		Task buyPrivateJet = new Task("Buying Private Jet", Duration.ofHours(1));
+
+		//Hard Test
 		Calendar doer1Calendar = new Calendar(9, 15, Set.of(LocalDate.of(2024, 10, 10)));
 		Calendar doer2Calendar = new Calendar(11, 17, Set.of(LocalDate.of(2024, 10, 10)));
+		Calendar doer3Calendar = new Calendar(10, 16, Set.of(LocalDate.of(2024, 10, 10)));
 		Calendar schoolProjectCalendar = new Calendar(9, 17, null);
 
 		Resource doer1 = new Resource("Ben", doer1Calendar);
 		Resource doer2 = new Resource("Max", doer2Calendar);
+		Resource doer3 = new Resource("Joe", doer3Calendar);
 
 		Project schoolProject = new Project("Biology School Project", schoolProjectCalendar);
 		schoolProject.addResource(doer1);
 		schoolProject.addResource(doer2);
+		schoolProject.addResource(doer3);
 
-		doer1.assignTasks(List.of(planProject, research1, assembleProject, createProduct, planMarketing, buyMcLaren, buyPrivateJet));
-		doer2.assignTasks(List.of(research2, research3, submitProject, createWebPage, startSales, buyMansion));
+		doer1.assignTasks(List.of(planProject, research1, assembleProject, createProduct, planMarketing, buyMcLaren));
+		doer2.assignTasks(List.of(research2, submitProject, startSales, buyMansion));
+		doer3.assignTasks(List.of(research3, createWebPage, buyPrivateJet));
 
 		schoolProject.addTask(assembleProject);
 		schoolProject.addTask(planProject);
@@ -98,8 +105,19 @@ public class GanttChartApplication {
 		research1.addSubTask(assembleProject);
 		 */
 
-		System.out.println("SORTED TASKS:" + schoolProject.getSortedTasks());
-		System.out.println("PROJECT DURATION:" + schoolProject.calculateProjectEstimatedDuration());
+		schoolProject.setEstimatedStartDate(LocalDateTime.of(2024, 11, 1, 9,0));
+
+		schoolProject.calculateSchedule();
+
+		System.out.println("Calculated Schedule:");
+		for (Task task : schoolProject.getSortedTasks()) {
+			System.out.println(task.getName() + ": " +
+					"Start - " + task.getEstimatedStartDate() +
+					", End - " + task.getEstimatedEndDate() +
+					"   (Resource: " + task.getAssignedResource().getName() + ")");
+		}
+
+		System.out.println("Project Estimated Duration: " + schoolProject.calculateProjectEstimatedDuration());
 		SpringApplication.run(GanttChartApplication.class, args);
 	}
 
