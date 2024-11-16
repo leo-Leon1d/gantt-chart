@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+// Класс тестировки
 @EnableScheduling
 @SpringBootApplication
 public class GanttChartApplication {
@@ -109,15 +110,35 @@ public class GanttChartApplication {
 
 		schoolProject.calculateSchedule();
 
-		System.out.println("Calculated Schedule:");
+		System.out.println("\nCalculated Schedule:");
 		for (Task task : schoolProject.getSortedTasks()) {
-			System.out.println(task.getName() + ": " +
-					"Start - " + task.getEstimatedStartDate() +
-					", End - " + task.getEstimatedEndDate() +
-					"   (Resource: " + task.getAssignedResource().getName() + ")");
+			System.out.println(
+
+					"\n\n" +
+
+					task.getName() + ": \n" +
+
+					"Start - " + task.getEstimatedStartDate().getMonth().toString().toLowerCase() + " "
+					+ task.getEstimatedStartDate().getDayOfMonth() + "  "
+					+ task.getEstimatedStartDate().toLocalTime() + "\n" +
+
+					"End   - " + task.getEstimatedEndDate().getMonth().toString().toLowerCase() + " "
+					+ task.getEstimatedEndDate().getDayOfMonth() + "  "
+					+ task.getEstimatedEndDate().toLocalTime() +
+
+					"\n(Duration: " + task.getEstimatedDuration().toHours() + "h, Resource: " + task.getAssignedResource().getName() + ")" +
+
+					"\n(" + task.getAssignedResource().getName() + "'s work hours: "
+					+ task.getAssignedResource().getResourceCalendar().getStartHour() + " - "
+					+ task.getAssignedResource().getResourceCalendar().getEndHour() + ")"
+
+			);
 		}
 
-		System.out.println("Project Estimated Duration: " + schoolProject.calculateProjectEstimatedDuration());
+		System.out.println("\n\nProject Estimated Duration: " + schoolProject.calculateProjectEstimatedDuration());
+
+		//System.out.println("\n\nProject Factual Duration: " + schoolProject.calculateProjectFactualDuration());
+
 		SpringApplication.run(GanttChartApplication.class, args);
 	}
 

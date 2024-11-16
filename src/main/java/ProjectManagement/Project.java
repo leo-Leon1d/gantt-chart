@@ -63,7 +63,7 @@ public class Project {
                 readyTasks.add(prioritySorter.get(0));
             } else if (prioritySorter.size() > 1) {
                 // Сортировка задач по приоритету от наибольшего к наименьшему
-                prioritySorter.sort((task1, task2) -> Integer.compare(task2.getPriority(), task1.getPriority()));
+                prioritySorter.sort(Comparator.comparingInt(Task::getPriority));
 
                 // Добавление уже отсортированных по приоритету задач в очередь readyTasks
                 readyTasks.addAll(prioritySorter);
@@ -81,6 +81,7 @@ public class Project {
         return sortedTasks;
     }
 
+    // Расчет расписания
     public void calculateSchedule() {
         if (estimatedStartDate == null) {
             throw new IllegalStateException("Project start date must be set before calculating the schedule.");
@@ -117,7 +118,7 @@ public class Project {
         }
     }
 
-
+    // Расчет даты начала задачи
     private LocalDateTime calculateStartDateForTask(Task task, Map<Resource, LocalDateTime> resourceAvailability) {
         LocalDateTime earliestStart = estimatedStartDate;
 
@@ -139,6 +140,7 @@ public class Project {
         return projectCalendar.getNextWorkingTime(earliestStart);
     }
 
+    // Расчет даты конца задачи
     private LocalDateTime calculateTaskEndDate(LocalDateTime startDate, Duration duration, Calendar resourceCalendar) {
         LocalDateTime currentDate = startDate;
         long remainingHours = duration.toHours();
@@ -147,7 +149,7 @@ public class Project {
             // Проверяем, является ли текущий день рабочим
             if (resourceCalendar.isWorkDay(currentDate.toLocalDate())) {
                 // Сколько часов можно использовать в текущий рабочий день
-                long availableHours = resourceCalendar.workHourLeftForDay(currentDate.toLocalDate(), currentDate);
+                long availableHours = resourceCalendar.workHoursLeftForDay(currentDate.toLocalDate(), currentDate);
                 if (remainingHours <= availableHours) {
                     return currentDate.plusHours(remainingHours);
                 } else {
@@ -182,29 +184,21 @@ public class Project {
         }
 
         // Самая ранняя оценочная дата начала задачи
-        LocalDateTime estimatedStartDate = tasks.stream()
-                .map(Task::getEstimatedStartDate)
-                .filter(Objects::nonNull)
-                .min(LocalDateTime::compareTo)
-                .orElse(null);
+        LocalDateTime startDateCalc = this.getSortedTasks().get(0).getEstimatedStartDate();
 
         // Самая поздняя оценочная дата окончания задачи
-        LocalDateTime estimatedEndDate = tasks.stream()
-                .map(Task::getEstimatedEndDate)
-                .filter(Objects::nonNull)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+        LocalDateTime endDateCalc = this.getSortedTasks().get(this.getSortedTasks().size()-1).getEstimatedEndDate();
 
-        if (estimatedStartDate == null || estimatedEndDate == null) {
+        if (startDateCalc == null || endDateCalc == null) {
             throw new IllegalStateException("Недостаточно данных для расчёта оценочной длительности проекта.");
         }
 
         // Возвращаем разницу между оценочной датой начала и окончания
-        return Duration.between(estimatedStartDate, estimatedEndDate);
+        return Duration.between(startDateCalc, endDateCalc);
     }
 
 
-    // Расчет фактической длительности проекта (только при его завершенности)
+    // Расчет фактической длительности проекта (только при завершенности)
     public Duration calculateProjectFactualDuration() {
         if (tasks.isEmpty()) {
             return Duration.ZERO;
@@ -217,25 +211,17 @@ public class Project {
             throw new IllegalStateException("Проект не завершён. Невозможно рассчитать фактическую длительность.");
         }
 
-        // Самая ранняя фактическая дата начала проекта
-        LocalDateTime factualStartDate = tasks.stream()
-                .map(Task::getFactualStartDate)
-                .filter(Objects::nonNull)
-                .min(LocalDateTime::compareTo)
-                .orElse(null);
+        // Самая ранняя фактическая дата начала задачи
+        LocalDateTime startDateCalc = this.getSortedTasks().get(0).getFactualStartDate();
 
-        // Самая поздняя фактическая дата окончания проекта
-        LocalDateTime factualEndDate = tasks.stream()
-                .map(Task::getFactualEndDate)
-                .filter(Objects::nonNull)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+        // Самая поздняя фактическая дата окончания задачи
+        LocalDateTime endDateCalc = this.getSortedTasks().get(this.getSortedTasks().size()-1).getFactualEndDate();
 
-        if (factualStartDate == null || factualEndDate == null) {
+        if (startDateCalc == null || endDateCalc == null) {
             throw new IllegalStateException("Недостаточно данных для расчёта фактической длительности проекта.");
         }
 
-        return Duration.between(factualStartDate, factualEndDate);
+        return Duration.between(startDateCalc, endDateCalc);
     }
 
 
@@ -285,7 +271,7 @@ public class Project {
         return earliestStartDate;
     }
 
-    // Пересчет зависимые задачи
+    // Пересчет зависимых задач
     private void updateDependentTasks(Task task) {
         for (Task dependentTask : task.getSubTasks()) {
             // Пересчитываем дату начала зависимой задачи
@@ -339,7 +325,7 @@ public class Project {
  */
 
 
-    // Получения следующей задачи для ресурса
+    // Получение следующей задачи для ресурса
     public Task getNextTaskForResource(Resource resource) {
         return tasks.stream()
                 .filter(task -> resource.equals(task.getAssignedResource()) && task.canStart())
@@ -348,7 +334,7 @@ public class Project {
                 .orElse(null);
     }
 
-    // Отмена задания
+    // Отмена задачи
     public void cancelTask(Task task) {
         task.setStatus(TaskStatus.CANCELLED);
         this.recalculateProjectSchedule();

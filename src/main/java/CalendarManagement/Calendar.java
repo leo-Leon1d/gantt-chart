@@ -34,12 +34,12 @@ public class Calendar {
         holidays.remove(holiday);
     }
 
-    // Проверка, является ли данный день рабочим
+    // Является ли данный день рабочим
     public boolean isWorkDay(LocalDate date) {
         return holidays==null || !holidays.contains(date) && date.getDayOfWeek().getValue() < 6; // Пн-Пт
     }
 
-    // Проверка, является ли данное время рабочим
+    // Является ли данное время рабочим
     public boolean isWorkHour(LocalDateTime dateTime) {
         LocalDate date = dateTime.toLocalDate();
         int hour = dateTime.getHour();
@@ -47,6 +47,7 @@ public class Calendar {
         return isWorkDay(date) && (hour >= startHour) && (hour <= endHour);
     }
 
+    // Расчет следующего рабочего времени
     public LocalDateTime getNextWorkingTime(LocalDateTime currentDateTime) {
         LocalDate currentDate = currentDateTime.toLocalDate();
 
@@ -73,7 +74,8 @@ public class Calendar {
     }
 
 
-    public long workHourLeftForDay(LocalDate date, LocalDateTime currentDateTime) {
+    // Расчет оставшихся рабочих часов в дне
+    public long workHoursLeftForDay(LocalDate date, LocalDateTime currentDateTime) {
         if (!isWorkDay(date)) {
             return 0;
         }
