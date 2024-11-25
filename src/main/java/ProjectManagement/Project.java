@@ -62,7 +62,6 @@ public class Project {
             if (prioritySorter.size() == 1) {
                 readyTasks.add(prioritySorter.get(0));
             } else if (prioritySorter.size() > 1) {
-                // Сортировка задач по приоритету от наибольшего к наименьшему
                 prioritySorter.sort(Comparator.comparingInt(Task::getPriority));
 
                 // Добавление уже отсортированных по приоритету задач в очередь readyTasks
@@ -118,6 +117,14 @@ public class Project {
         }
     }
 
+    // Перерасчет расписания зависимостей задачи
+    public void updateScheduleAfterChange(Task changedTask) {
+        for (Task dependentTask : changedTask.getSubTasks()) {
+            dependentTask.updateEstimatedEndDate();
+            updateScheduleAfterChange(dependentTask);
+        }
+    }
+
     // Расчет даты начала задачи
     private LocalDateTime calculateStartDateForTask(Task task, Map<Resource, LocalDateTime> resourceAvailability) {
         LocalDateTime earliestStart = estimatedStartDate;
@@ -146,7 +153,7 @@ public class Project {
         long remainingHours = duration.toHours();
 
         while (remainingHours > 0) {
-            // Проверяем, является ли текущий день рабочим
+            // Является ли текущий день рабочим
             if (resourceCalendar.isWorkDay(currentDate.toLocalDate())) {
                 // Сколько часов можно использовать в текущий рабочий день
                 long availableHours = resourceCalendar.workHoursLeftForDay(currentDate.toLocalDate(), currentDate);
@@ -157,7 +164,7 @@ public class Project {
                     currentDate = currentDate.plusDays(1).withHour(resourceCalendar.getStartHour()).withMinute(0);
                 }
             } else {
-                // Если день нерабочий, переходим к следующему
+                // День нерабочий -> переход к следующему
                 currentDate = currentDate.plusDays(1).withHour(resourceCalendar.getStartHour()).withMinute(0);
             }
         }
@@ -171,11 +178,20 @@ public class Project {
         tasks.add(task);
     }
 
+    // Добавление задач
+    public void addTasks(List<Task> newTasks) {
+        tasks.addAll(newTasks);
+    }
+
     // Добавление исполнителя
     public void addResource(Resource resource) {
         resources.add(resource);
     }
 
+    // Добавление исполнителей
+    public void addResources(List<Resource> newResources) {
+        resources.addAll(newResources);
+    }
 
     // Расчет оценочной длительности проекта
     public Duration calculateProjectEstimatedDuration() {
@@ -369,5 +385,25 @@ public class Project {
         for (Resource resource : resources) {
             System.out.println(resource);
         }
+    }
+
+    // Поиск задачи по имени
+    public Task getTaskByName(String taskName) {
+        for (Task task : tasks) {
+            if (task.getName().equalsIgnoreCase(taskName)) {
+                return task;
+            }
+        }
+        return null;
+    }
+
+    // Поиск исполнителя по имени
+    public Resource getResourceByName(String resourceName) {
+        for (Resource resource : resources) {
+            if (resource.getName().equalsIgnoreCase(resourceName)) {
+                return resource;
+            }
+        }
+        return null;
     }
 }

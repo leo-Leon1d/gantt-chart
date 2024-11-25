@@ -8,10 +8,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import java.lang.reflect.Array;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -21,8 +23,6 @@ import java.util.Set;
 public class GanttChartApplication {
 
 	public static void main(String[] args) {
-
-		// Коментарии в конце иннициализации каждой задачи можно не учитывать, они ничего не значат, просто для себя
 
 		Task planProject = new Task("Project Planning", Duration.ofHours(4));
 		Task research1 = new Task("First Research", Duration.ofHours(8));
@@ -41,10 +41,16 @@ public class GanttChartApplication {
 		Task buyPrivateJet = new Task("Buying Private Jet", Duration.ofHours(1));
 
 		//Hard Test
-		Calendar doer1Calendar = new Calendar(9, 15, Set.of(LocalDate.of(2024, 10, 10)));
-		Calendar doer2Calendar = new Calendar(11, 17, Set.of(LocalDate.of(2024, 10, 10)));
-		Calendar doer3Calendar = new Calendar(10, 16, Set.of(LocalDate.of(2024, 10, 10)));
-		Calendar schoolProjectCalendar = new Calendar(9, 17, null);
+
+		int[] weekendsSatSun = {6,7};
+		int[] doer1Weekends = {6,7};
+		int[] doer2Weekends = {5,6};
+		int[] doer3Weekends = {1,3,5,7};
+
+		Calendar doer1Calendar = new Calendar(9, 15, Set.of(LocalDate.of(2024, 10, 10)), doer1Weekends);
+		Calendar doer2Calendar = new Calendar(11, 17, Set.of(LocalDate.of(2024, 10, 10)), doer2Weekends);
+		Calendar doer3Calendar = new Calendar(10, 16, Set.of(LocalDate.of(2024, 10, 10)), doer3Weekends);
+		Calendar schoolProjectCalendar = new Calendar(9, 17, null, weekendsSatSun);
 
 		Resource doer1 = new Resource("Ben", doer1Calendar);
 		Resource doer2 = new Resource("Max", doer2Calendar);
@@ -120,13 +126,19 @@ public class GanttChartApplication {
 
 					"Start - " + task.getEstimatedStartDate().getMonth().toString().toLowerCase() + " "
 					+ task.getEstimatedStartDate().getDayOfMonth() + "  "
-					+ task.getEstimatedStartDate().toLocalTime() + "\n" +
+					+ task.getEstimatedStartDate().toLocalTime() + "   ("
+					+ task.getEstimatedStartDate().getDayOfWeek().toString().toLowerCase() + ")\n" +
 
 					"End   - " + task.getEstimatedEndDate().getMonth().toString().toLowerCase() + " "
 					+ task.getEstimatedEndDate().getDayOfMonth() + "  "
-					+ task.getEstimatedEndDate().toLocalTime() +
+					+ task.getEstimatedEndDate().toLocalTime() + "   ("
+					+ task.getEstimatedEndDate().getDayOfWeek().toString().toLowerCase() + ")" +
 
 					"\n(Duration: " + task.getEstimatedDuration().toHours() + "h, Resource: " + task.getAssignedResource().getName() + ")" +
+
+					"\n(" + task.getAssignedResource().getName() + "'s work days: "
+					+ Arrays.toString(task.getAssignedResource().getResourceCalendar().getWeekends())
+							.substring(1, Arrays.toString(task.getAssignedResource().getResourceCalendar().getWeekends()).length() - 1) + ")" +
 
 					"\n(" + task.getAssignedResource().getName() + "'s work hours: "
 					+ task.getAssignedResource().getResourceCalendar().getStartHour() + " - "

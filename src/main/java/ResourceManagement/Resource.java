@@ -18,15 +18,23 @@ public class Resource {
     private String name;
     private Calendar resourceCalendar;
 
+    // Конструктор
     public Resource(String name, Calendar resourceCalendar) {
         this.name = name;
         this.resourceCalendar = resourceCalendar;
     }
 
+    // Уведомление об изменениях
+    public void notify(String message) {
+        System.out.println("Уведомление для " + name + ": " + message);
+    }
+
+    // Назначение задачи
     public void assignTask(Task task) {
         task.assignResource(this);
     }
 
+    // Назначение задач
     public void assignTasks(List<Task> tasks) {
         for(Task task : tasks) {
             task.assignResource(this);
