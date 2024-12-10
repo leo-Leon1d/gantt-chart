@@ -6,6 +6,9 @@ import ResourceManagement.Resource;
 import TaskManagement.Task;
 import TaskManagement.TaskStatus;
 
+import java.sql.SQLOutput;
+import java.util.ArrayList;
+import java.util.concurrent.*;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,26 +20,39 @@ public class TestApplication {
 
     public static void main(String[] args) {
 
-        Calendar commonCalendar = new Calendar(9, 17, Set.of(LocalDate.of(2024, 11, 23)), new int[]{6, 7});
+        Calendar commonCalendar = new Calendar(9, 17, Set.of(LocalDate.of(2024, 11, 23)), null);
 
         Resource developer1 = new Resource("Dev1", commonCalendar);
         Resource developer2 = new Resource("Dev2", commonCalendar);
+        Resource developer3 = new Resource("Dev3", commonCalendar);
 
-        Task task1 = new Task("Task 1", Duration.ofMinutes(1));
-        Task task2 = new Task("Task 2", Duration.ofMinutes(1));
-        Task task3 = new Task("Task 3", Duration.ofMinutes(1));
+        Task mainTask1 = new Task("Main Task 1", Duration.ofMinutes(1));
+        Task subTask1 = new Task("Sub Task 1", Duration.ofMinutes(1));
+        Task subTask2 = new Task("Sub Task 2", Duration.ofMinutes(1));
+        Task mainTask2 = new Task("Main Task 2", Duration.ofMinutes(1));
+        Task subTask3 = new Task("Sub Task 3", Duration.ofMinutes(1));
+        Task subTask4 = new Task("Sub Task 4", Duration.ofMinutes(1));
+        Task sideTask = new Task("Side Task", Duration.ofMinutes(1));
 
-        task2.addDependentTask(task1); // Task 2 зависит от Task 1
-        task3.addDependentTask(task2); // Task 3 зависит от Task 2
+        mainTask1.addSubTasks(List.of(subTask1, subTask2));
+        mainTask2.addDependentTasks(List.of(subTask1, subTask2));
+        mainTask2.addSubTasks(List.of(subTask3, subTask4));
 
-        task1.assignResource(developer1);
-        task2.assignResource(developer2);
-        task3.assignResource(developer1);
+        sideTask.assignResource(developer1);
+        mainTask1.assignResource(developer1);
+        subTask1.assignResource(developer2);
+        subTask2.assignResource(developer3);
+        mainTask2.assignResource(developer1);
+        subTask3.assignResource(developer2);
+        subTask4.assignResource(developer2);
+
+        sideTask.setPriority(90); // маленький приоритет (чтобы выполнялась после mainTask1)
+        subTask3.setPriority(30); // большой приоритет (чтобы выполнялась перед subTask4)
 
         Project project = new Project("Project", commonCalendar);
-        project.addTasks(List.of(task1, task2, task3));
-        project.addResources(List.of(developer1, developer2));
-        project.setFactualStartDate(LocalDateTime.of(2024, 11, 25, 17, 8));
+        project.addTasks(List.of(mainTask1, mainTask2, subTask4, subTask3, subTask2, subTask1, sideTask));
+        project.addResources(List.of(developer1, developer2, developer3));
+        project.setFactualStartDate(LocalDateTime.of(2024, 12, 10, 16, 57));
 
         /*
         System.out.println("=== ТЕСТ 1: Стандартный поток выполнения ===");
@@ -44,6 +60,7 @@ public class TestApplication {
          */
 
         System.out.println("=== ТЕСТ 2: Динамическое управление проектом ===");
+        System.out.println(project.getSortedTasks());
         Thread projectExecutionThread = new Thread(() -> executeProjectTasks(project));
         projectExecutionThread.start();
         manageProjectInRealTime(project, projectExecutionThread);
@@ -79,35 +96,64 @@ public class TestApplication {
     }
 
     // Выполнить задачу
+
     private static void executeTask(Task task) {
+        System.out.println("\n");
+        ExecutorService executorService = Executors.newCachedThreadPool(); // Асинхронный пул потоков
         try {
+            // Проверка: если задача уже завершена, повторно не выполняем
+            if (task.getStatus() == TaskStatus.COMPLETED) {
+                return;
+            }
+
+            // Выполнение зависимостей задачи
             if (!task.getDependencies().isEmpty()) {
+                List<Future<?>> dependencyFutures = new ArrayList<>();
                 for (Task dependency : task.getDependencies()) {
-                    while (dependency.getStatus() != TaskStatus.COMPLETED) {
-                        if (dependency.getStatus() == TaskStatus.CANCELLED) {
-                            System.out.println("Невозможно начать задачу " + task.getName() +
-                                    ". Зависимость " + dependency.getName() + " была отменена.");
-                            return;
-                        }
-                        System.out.println("Ожидание завершения зависимости: " + dependency.getName());
-                        Thread.sleep(100);
+                    if (dependency.getStatus() == TaskStatus.NOT_STARTED) {
+                        System.out.println("Запуск зависимости: " + dependency.getName());
+                        dependencyFutures.add(executorService.submit(() -> executeTask(dependency)));
+                    }
+                }
+
+                // Ожидание завершения всех зависимостей
+                for (Future<?> future : dependencyFutures) {
+                    future.get(); // Блокируемся до завершения выполнения зависимости
+                }
+
+                // Проверяем статус всех зависимостей
+                for (Task dependency : task.getDependencies()) {
+                    if (dependency.getStatus() != TaskStatus.COMPLETED) {
+                        System.out.println("Невозможно начать задачу " + task.getName() +
+                                ". Зависимость " + dependency.getName() + " не завершена.");
+                        return;
                     }
                 }
             }
 
+            // Начало выполнения текущей задачи
             task.startTask();
 
+            // Эмуляция выполнения задачи
             long taskDurationMillis = task.getEstimatedDuration().toMillis();
             Thread.sleep(taskDurationMillis);
 
+            // Завершение задачи
             task.completeTask();
 
         } catch (InterruptedException e) {
             System.err.println("Ошибка выполнения задачи " + task.getName() + ": " + e.getMessage());
+            Thread.currentThread().interrupt(); // Восстанавливаем статус прерывания потока
+        } catch (ExecutionException e) {
+            System.err.println("Ошибка выполнения зависимости задачи " + task.getName() + ": " + e.getCause());
+        } finally {
+            executorService.shutdown(); // Закрываем пул потоков
         }
     }
 
-    // Управление с консоли
+
+
+    // Управление при помощи консоли
     private static void manageProjectInRealTime(Project project, Thread projectExecutionThread) {
         Scanner scanner = new Scanner(System.in);
 

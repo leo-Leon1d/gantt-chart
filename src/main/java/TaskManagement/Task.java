@@ -127,10 +127,6 @@ public class Task {
         if (canStart()) {
             this.status = TaskStatus.IN_PROGRESS;
             this.factualStartDate = LocalDateTime.now();
-            System.out.println("Зависимости задачи: \n");
-            for(Task dependency : this.dependencies) {
-                System.out.println(dependency.name + "-" + dependency.getStatus().toString());
-            }
             System.out.println("Задача " + name + " начата.");
         } else {
             System.out.println("Невозможно начать задачу " + name + ". Зависимые задачи не завершены.");
