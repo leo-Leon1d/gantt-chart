@@ -37,10 +37,9 @@ public class Project {
     public List<Task> getSortedTasks() {
         List<Task> sortedTasks = new ArrayList<>();
         List<Task> prioritySorter = new ArrayList<>();
-        Map<Task, Integer> taskDepCount = new HashMap<>(); // Количество зависимостей для каждой задачи
+        Map<Task, Integer> taskDepCount = new HashMap<>();
         Queue<Task> readyTasks = new LinkedList<>();
 
-        // Инициализируем количество зависимостей для каждой задачи
         for (Task task : tasks) {
             taskDepCount.put(task, task.getDependencies().size());
             if (task.getDependencies().isEmpty()) {
@@ -64,11 +63,9 @@ public class Project {
             } else if (prioritySorter.size() > 1) {
                 prioritySorter.sort(Comparator.comparingInt(Task::getPriority));
 
-                // Добавление уже отсортированных по приоритету задач в очередь readyTasks
                 readyTasks.addAll(prioritySorter);
             }
 
-            // Очищаем prioritySorter для следующего уровня
             prioritySorter.clear();
         }
 
@@ -86,10 +83,8 @@ public class Project {
             throw new IllegalStateException("Project start date must be set before calculating the schedule.");
         }
 
-        // Сортируем задачи с учетом зависимостей
         List<Task> sortedTasks = getSortedTasks();
 
-        // Инициализация времени доступности исполнителей
         Map<Resource, LocalDateTime> resourceAvailability = new HashMap<>();
         for (Resource resource : resources) {
             resourceAvailability.put(resource, estimatedStartDate);
@@ -102,17 +97,13 @@ public class Project {
                 throw new IllegalStateException("Task '" + task.getName() + "' has no assigned resource.");
             }
 
-            // Определяем, когда можно начать задачу
             LocalDateTime taskStartDate = calculateStartDateForTask(task, resourceAvailability);
 
-            // Учитываем длительность задачи
             LocalDateTime taskEndDate = calculateTaskEndDate(taskStartDate, task.getEstimatedDuration(), assignedResource.getResourceCalendar());
 
-            // Устанавливаем рассчитанные даты
             task.setEstimatedStartDate(taskStartDate);
             task.setEstimatedEndDate(taskEndDate);
 
-            // Обновляем время доступности исполнителя
             resourceAvailability.put(assignedResource, taskEndDate);
         }
     }
@@ -129,7 +120,6 @@ public class Project {
     private LocalDateTime calculateStartDateForTask(Task task, Map<Resource, LocalDateTime> resourceAvailability) {
         LocalDateTime earliestStart = estimatedStartDate;
 
-        // Учитываем зависимости
         for (Task dependency : task.getDependencies()) {
             if (dependency.getEstimatedEndDate() != null && dependency.getEstimatedEndDate().isAfter(earliestStart)) {
                 earliestStart = dependency.getEstimatedEndDate();
@@ -143,7 +133,6 @@ public class Project {
             earliestStart = resourceAvailable;
         }
 
-        // Учитываем календарь проекта
         return projectCalendar.getNextWorkingTime(earliestStart);
     }
 
@@ -153,9 +142,7 @@ public class Project {
         long remainingHours = duration.toHours();
 
         while (remainingHours > 0) {
-            // Является ли текущий день рабочим
             if (resourceCalendar.isWorkDay(currentDate.toLocalDate())) {
-                // Сколько часов можно использовать в текущий рабочий день
                 long availableHours = resourceCalendar.workHoursLeftForDay(currentDate.toLocalDate(), currentDate);
                 if (remainingHours <= availableHours) {
                     return currentDate.plusHours(remainingHours);
@@ -164,7 +151,6 @@ public class Project {
                     currentDate = currentDate.plusDays(1).withHour(resourceCalendar.getStartHour()).withMinute(0);
                 }
             } else {
-                // День нерабочий -> переход к следующему
                 currentDate = currentDate.plusDays(1).withHour(resourceCalendar.getStartHour()).withMinute(0);
             }
         }
@@ -199,17 +185,14 @@ public class Project {
             return Duration.ZERO;
         }
 
-        // Самая ранняя оценочная дата начала задачи
         LocalDateTime startDateCalc = this.getSortedTasks().get(0).getEstimatedStartDate();
 
-        // Самая поздняя оценочная дата окончания задачи
         LocalDateTime endDateCalc = this.getSortedTasks().get(this.getSortedTasks().size()-1).getEstimatedEndDate();
 
         if (startDateCalc == null || endDateCalc == null) {
             throw new IllegalStateException("Недостаточно данных для расчёта оценочной длительности проекта.");
         }
 
-        // Возвращаем разницу между оценочной датой начала и окончания
         return Duration.between(startDateCalc, endDateCalc);
     }
 
@@ -227,10 +210,8 @@ public class Project {
             throw new IllegalStateException("Проект не завершён. Невозможно рассчитать фактическую длительность.");
         }
 
-        // Самая ранняя фактическая дата начала задачи
         LocalDateTime startDateCalc = this.getSortedTasks().get(0).getFactualStartDate();
 
-        // Самая поздняя фактическая дата окончания задачи
         LocalDateTime endDateCalc = this.getSortedTasks().get(this.getSortedTasks().size()-1).getFactualEndDate();
 
         if (startDateCalc == null || endDateCalc == null) {
@@ -245,18 +226,15 @@ public class Project {
     public void recalculateProjectSchedule() {
         Set<Task> updatedTasks = new HashSet<>();
 
-        // Пересчитываем только те задачи, которые нуждаются в пересчете
         for (Task task : tasks) {
             if (task.getStatus() == TaskStatus.NOT_STARTED) {
 
-                // Дата начала задачи на основе её зависимостей
                 LocalDateTime startDate = calculateStartDateForTask(task);
                 if (!startDate.equals(task.getEstimatedStartDate())) {
                     task.setEstimatedStartDate(startDate);
                     updatedTasks.add(task);
                 }
 
-                // Дата окончания задачи
                 LocalDateTime endDate = task.calculateEndDate(startDate, task.getEstimatedDuration(), projectCalendar, task.getAssignedResource().getResourceCalendar());
                 if (!endDate.equals(task.getEstimatedEndDate())) {
                     task.setEstimatedEndDate(endDate);
@@ -265,7 +243,6 @@ public class Project {
             }
         }
 
-        // Пересчет зависимостей и подзадач
         for (Task updatedTask : updatedTasks) {
             updateDependentTasks(updatedTask);
             recalculateSubTasks(updatedTask);
@@ -276,7 +253,6 @@ public class Project {
     private static LocalDateTime calculateStartDateForTask(Task task) {
         LocalDateTime earliestStartDate = task.getEstimatedStartDate(); // Начальное значение для даты начала задачи
 
-        // Проверяем зависимости задачи
         for (Task dependency : task.getDependencies()) {
             if (dependency.getEstimatedEndDate() != null && dependency.getEstimatedEndDate().isAfter(earliestStartDate)) {
                 // Если зависимость заканчивается позже, то задача может начинаться только после неё
@@ -290,13 +266,12 @@ public class Project {
     // Пересчет зависимых задач
     private void updateDependentTasks(Task task) {
         for (Task dependentTask : task.getSubTasks()) {
-            // Пересчитываем дату начала зависимой задачи
+
             LocalDateTime newStartDate = calculateStartDateForTask(dependentTask);
             if (!newStartDate.equals(dependentTask.getEstimatedStartDate())) {
                 dependentTask.setEstimatedStartDate(newStartDate);
             }
 
-            // Пересчет даты окончания зависимой задачи
             LocalDateTime newEndDate = dependentTask.calculateEndDate(newStartDate, dependentTask.getEstimatedDuration(), projectCalendar, dependentTask.getAssignedResource().getResourceCalendar());
             if (!newEndDate.equals(dependentTask.getEstimatedEndDate())) {
                 dependentTask.setEstimatedEndDate(newEndDate);

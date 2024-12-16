@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Objects;
 
 
-// Класс здаачи
+// Класс задачи
 @Getter
 @Setter
 public class Task {
@@ -165,9 +165,8 @@ public class Task {
 
     public void recalculateSchedule() {
         if (this.status == TaskStatus.COMPLETED) {
-            // Пересчитываем зависимости
+
             for (Task dependentTask : this.dependencies) {
-                // Проверяем, что дата начала зависимой задачи еще не установлена или она раньше, чем фактическая дата завершения
                 if (dependentTask.getEstimatedStartDate() == null || dependentTask.getEstimatedStartDate().isBefore(this.factualEndDate)) {
                     dependentTask.setEstimatedStartDate(this.factualEndDate.plusHours(1)); // Задача начнется через час после завершения
                     dependentTask.updateEstimatedEndDate(); // Пересчитываем оценочную дату окончания для зависимой задачи
@@ -175,7 +174,6 @@ public class Task {
                 }
             }
 
-            // Пересчитываем подзадачи (если они есть)
             for (Task subTask : this.subTasks) {
                 if (subTask.getEstimatedStartDate() == null || subTask.getEstimatedStartDate().isBefore(this.factualEndDate)) {
                     subTask.setEstimatedStartDate(this.factualEndDate.plusHours(1)); // Задача начнется через час после завершения
@@ -197,8 +195,8 @@ public class Task {
             case IN_PROGRESS:
                 if (this.status == TaskStatus.PAUSED) togglePauseTask();
                 if (canStart()) {
-                    startTask(); // Ваш метод с дополнительной логикой
-                    recalculateSchedule(); // Пересчет зависимых задач
+                    startTask();
+                    recalculateSchedule();
                 } else {
                     System.out.println("Невозможно начать задачу " + name);
                 }
@@ -206,21 +204,21 @@ public class Task {
 
             case COMPLETED:
                 if (this.status == TaskStatus.IN_PROGRESS) {
-                    completeTask(); // Ваш метод для завершения
-                    recalculateSchedule(); // Пересчет зависимых задач
+                    completeTask();
+                    recalculateSchedule();
                 } else {
                     System.out.println("Невозможно завершить задачу " + name + " из статуса " + this.status);
                 }
                 break;
 
             case CANCELLED:
-                cancelTask(); // Ваш метод для отмены
-                recalculateSchedule(); // Пересчет зависимых задач
+                cancelTask();
+                recalculateSchedule();
                 break;
 
             case PAUSED:
                 if (this.status == TaskStatus.IN_PROGRESS) {
-                    togglePauseTask(); // Ваш метод для паузы
+                    togglePauseTask();
                 } else {
                     System.out.println("Невозможно поставить задачу " + name + " на паузу");
                 }
@@ -231,7 +229,6 @@ public class Task {
                 break;
         }
 
-        // Уведомление о смене статуса
         System.out.println("Статус задачи " + name + " изменен на " + newStatus);
     }
 
@@ -254,9 +251,9 @@ public class Task {
         if (this.status == TaskStatus.PAUSED || this.status == TaskStatus.NOT_STARTED) {
             assignResource(newResource);
         } else if (this.status == TaskStatus.IN_PROGRESS) {
-            togglePauseTask(); // Приостановка для переназначения
+            togglePauseTask();
             assignResource(newResource);
-            togglePauseTask(); // Возобновление
+            togglePauseTask();
         } else {
             System.out.println("Невозможно переназначить ресурс для завершённой или отменённой задачи.");
         }

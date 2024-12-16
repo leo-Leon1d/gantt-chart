@@ -6,7 +6,6 @@ import ResourceManagement.Resource;
 import TaskManagement.Task;
 import TaskManagement.TaskStatus;
 
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.concurrent.*;
 import java.time.Duration;
@@ -101,12 +100,11 @@ public class TestApplication {
         System.out.println("\n");
         ExecutorService executorService = Executors.newCachedThreadPool(); // Асинхронный пул потоков
         try {
-            // Проверка: если задача уже завершена, повторно не выполняем
+
             if (task.getStatus() == TaskStatus.COMPLETED) {
                 return;
             }
 
-            // Выполнение зависимостей задачи
             if (!task.getDependencies().isEmpty()) {
                 List<Future<?>> dependencyFutures = new ArrayList<>();
                 for (Task dependency : task.getDependencies()) {
@@ -116,12 +114,10 @@ public class TestApplication {
                     }
                 }
 
-                // Ожидание завершения всех зависимостей
                 for (Future<?> future : dependencyFutures) {
                     future.get(); // Блокируемся до завершения выполнения зависимости
                 }
 
-                // Проверяем статус всех зависимостей
                 for (Task dependency : task.getDependencies()) {
                     if (dependency.getStatus() != TaskStatus.COMPLETED) {
                         System.out.println("Невозможно начать задачу " + task.getName() +
@@ -131,23 +127,20 @@ public class TestApplication {
                 }
             }
 
-            // Начало выполнения текущей задачи
             task.startTask();
 
-            // Эмуляция выполнения задачи
             long taskDurationMillis = task.getEstimatedDuration().toMillis();
             Thread.sleep(taskDurationMillis);
 
-            // Завершение задачи
             task.completeTask();
 
         } catch (InterruptedException e) {
             System.err.println("Ошибка выполнения задачи " + task.getName() + ": " + e.getMessage());
-            Thread.currentThread().interrupt(); // Восстанавливаем статус прерывания потока
+            Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
             System.err.println("Ошибка выполнения зависимости задачи " + task.getName() + ": " + e.getCause());
         } finally {
-            executorService.shutdown(); // Закрываем пул потоков
+            executorService.shutdown();
         }
     }
 
