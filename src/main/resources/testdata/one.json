@@ -1,0 +1,59 @@
+{
+  "maxTaskId": 0,
+  "maxResourceId": 0,
+  "calendar": {
+    "workStartHour": 9,
+    "workEndHour": 17,
+    "holidays": ["2024-12-25"],
+    "weekends": [6, 7]
+  },
+  "resources": [
+    {
+      "name": "Vasya",
+      "calendar": {
+        "workStartHour": 8,
+        "workEndHour": 16,
+        "holidays": ["2024-12-31"],
+        "weekends": [6, 7]
+      }
+    },
+    {
+      "name": "Petya",
+      "calendar": {
+        "workStartHour": 10,
+        "workEndHour": 18,
+        "holidays": ["2024-12-30"],
+        "weekends": [6, 7]
+      }
+    },
+    {
+      "name": "Masha",
+      "calendar": {
+        "workStartHour": 9,
+        "workEndHour": 17,
+        "holidays": [],
+        "weekends": [6, 7]
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "name": "Main Task 1",
+      "durationSeconds": 3,
+      "durationMinutes": 0,
+      "durationHours": 0,
+      "priority": 50,
+      "assignedResourceName": "Vasya",
+      "subtasks": [
+        {
+          "name": "Sub Task 1",
+          "durationSeconds": 3,
+          "durationMinutes": 0,
+          "durationHours": 0,
+          "priority": 50,
+          "assignedResourceName": "Masha"
+        }
+      ]
+    }
+  ]
+}

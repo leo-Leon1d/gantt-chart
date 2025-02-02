@@ -1,4 +1,4 @@
-package com.example.demo.Application;
+package Application;
 
 import CalendarManagement.Calendar;
 import ProjectManagement.Project;
@@ -13,25 +13,24 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
 
 public class TestApplication {
 
     public static void main(String[] args) {
 
-        Calendar commonCalendar = new Calendar(9, 17, Set.of(LocalDate.of(2024, 11, 23)), null);
+        Calendar commonCalendar = new Calendar(9, 17, List.of(LocalDate.of(2024, 11, 23)), null);
 
         Resource developer1 = new Resource("Dev1", commonCalendar);
         Resource developer2 = new Resource("Dev2", commonCalendar);
         Resource developer3 = new Resource("Dev3", commonCalendar);
 
-        Task mainTask1 = new Task("Main Task 1", Duration.ofMinutes(1));
-        Task subTask1 = new Task("Sub Task 1", Duration.ofMinutes(1));
-        Task subTask2 = new Task("Sub Task 2", Duration.ofMinutes(1));
-        Task mainTask2 = new Task("Main Task 2", Duration.ofMinutes(1));
-        Task subTask3 = new Task("Sub Task 3", Duration.ofMinutes(1));
-        Task subTask4 = new Task("Sub Task 4", Duration.ofMinutes(1));
-        Task sideTask = new Task("Side Task", Duration.ofMinutes(1));
+        Task mainTask1 = new Task("Main Task 1", Duration.ofSeconds(2));
+        Task subTask1 = new Task("Sub Task 1", Duration.ofSeconds(2));
+        Task subTask2 = new Task("Sub Task 2", Duration.ofSeconds(2));
+        Task mainTask2 = new Task("Main Task 2", Duration.ofSeconds(2));
+        Task subTask3 = new Task("Sub Task 3", Duration.ofSeconds(2));
+        Task subTask4 = new Task("Sub Task 4", Duration.ofSeconds(2));
+        Task sideTask = new Task("Side Task", Duration.ofSeconds(2));
 
         mainTask1.addSubTasks(List.of(subTask1, subTask2));
         mainTask2.addDependentTasks(List.of(subTask1, subTask2));
@@ -51,7 +50,7 @@ public class TestApplication {
         Project project = new Project("Project", commonCalendar);
         project.addTasks(List.of(mainTask1, mainTask2, subTask4, subTask3, subTask2, subTask1, sideTask));
         project.addResources(List.of(developer1, developer2, developer3));
-        project.setFactualStartDate(LocalDateTime.of(2024, 12, 10, 16, 57));
+        project.setFactualStartDate(LocalDateTime.of(2024, 12, 16, 18, 6));
 
         /*
         System.out.println("=== ТЕСТ 1: Стандартный поток выполнения ===");
@@ -66,7 +65,7 @@ public class TestApplication {
     }
 
     // Выполнить задачи проекта
-    private static void executeProjectTasks(Project project) {
+    public static void executeProjectTasks(Project project) {
         LocalDateTime projectStart = project.getFactualStartDate();
         LocalDateTime now = LocalDateTime.now();
 
@@ -81,8 +80,9 @@ public class TestApplication {
         System.out.println("Все задачи проекта завершены!");
     }
 
+
     // Ожидание старта
-    private static void waitForStart(LocalDateTime startTime) {
+    public static void waitForStart(LocalDateTime startTime) {
         long delay = java.time.Duration.between(LocalDateTime.now(), startTime).toMillis();
         if (delay > 0) {
             System.out.println("Ожидаем начала проекта до " + startTime);
@@ -95,16 +95,12 @@ public class TestApplication {
     }
 
     // Выполнить задачу
-
-    private static void executeTask(Task task) {
-        System.out.println("\n");
-        ExecutorService executorService = Executors.newCachedThreadPool(); // Асинхронный пул потоков
+    public static void executeTask(Task task) {
+        ExecutorService executorService = Executors.newCachedThreadPool();
         try {
-
             if (task.getStatus() == TaskStatus.COMPLETED) {
                 return;
             }
-
             if (!task.getDependencies().isEmpty()) {
                 List<Future<?>> dependencyFutures = new ArrayList<>();
                 for (Task dependency : task.getDependencies()) {
@@ -115,7 +111,7 @@ public class TestApplication {
                 }
 
                 for (Future<?> future : dependencyFutures) {
-                    future.get(); // Блокируемся до завершения выполнения зависимости
+                    future.get();
                 }
 
                 for (Task dependency : task.getDependencies()) {
@@ -127,12 +123,13 @@ public class TestApplication {
                 }
             }
 
-            task.startTask();
+            task.start();
 
             long taskDurationMillis = task.getEstimatedDuration().toMillis();
             Thread.sleep(taskDurationMillis);
 
-            task.completeTask();
+            task.complete();
+            System.out.println("\n");
 
         } catch (InterruptedException e) {
             System.err.println("Ошибка выполнения задачи " + task.getName() + ": " + e.getMessage());
@@ -147,7 +144,7 @@ public class TestApplication {
 
 
     // Управление при помощи консоли
-    private static void manageProjectInRealTime(Project project, Thread projectExecutionThread) {
+    public static void manageProjectInRealTime(Project project, Thread projectExecutionThread) {
         Scanner scanner = new Scanner(System.in);
 
         while (projectExecutionThread.isAlive()) {

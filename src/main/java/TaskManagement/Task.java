@@ -72,12 +72,23 @@ public class Task {
 
     // Добавление "нижней" задачи
     public void addSubTask(Task subTask) {
+        System.out.println("Пытаемся добавить подзадачу: " + subTask.getName() + " к задаче: " + this.getName());
+
+        // Проверка на цикличность
         if (this == subTask || subTask.getDependencies().contains(this)) {
-            throw new IllegalArgumentException("Unable to add a subtask due to loop creation");
+            System.out.println("Ошибка: подзадача вызывает цикл.");
+            return;
         }
+
         this.subTasks.add(subTask);
         subTask.dependencies.add(this);
+
+        System.out.println("Подзадача " + subTask.getName() + " успешно добавлена.");
     }
+
+
+
+
 
     // Добавление списка "нижних" задач
     public void addSubTasks(List<Task> subTasksList) {
@@ -123,15 +134,25 @@ public class Task {
     }
 
     // Начало задачи
-    public void startTask() {
+    public void start() {
         if (canStart()) {
+            // Сначала начинаем главную задачу
             this.status = TaskStatus.IN_PROGRESS;
             this.factualStartDate = LocalDateTime.now();
             System.out.println("Задача " + name + " начата.");
+
+            // После завершения главной задачи начинаем подзадачи
+            for (Task subTask : subTasks) {
+                // Проверяем, что подзадача может начать выполнение
+                if (subTask.canStart()) {
+                    subTask.start();
+                }
+            }
         } else {
             System.out.println("Невозможно начать задачу " + name + ". Зависимые задачи не завершены.");
         }
     }
+
 
     // Переключение ПАУЗА-ПРОГРЕСС
     public void togglePauseTask() {
@@ -148,7 +169,7 @@ public class Task {
     }
 
     // Завершение задачи
-    public void completeTask() {
+    public void complete() {
         if (this.status == TaskStatus.IN_PROGRESS) {
             this.status = TaskStatus.COMPLETED;
             this.factualEndDate = LocalDateTime.now();
@@ -195,7 +216,7 @@ public class Task {
             case IN_PROGRESS:
                 if (this.status == TaskStatus.PAUSED) togglePauseTask();
                 if (canStart()) {
-                    startTask();
+                    start();
                     recalculateSchedule();
                 } else {
                     System.out.println("Невозможно начать задачу " + name);
@@ -204,7 +225,7 @@ public class Task {
 
             case COMPLETED:
                 if (this.status == TaskStatus.IN_PROGRESS) {
-                    completeTask();
+                    complete();
                     recalculateSchedule();
                 } else {
                     System.out.println("Невозможно завершить задачу " + name + " из статуса " + this.status);
@@ -333,6 +354,12 @@ public class Task {
     public boolean hasDependencies() {
         return this.getDependencies()!=null;
     }
+    public boolean isInProgress() { return this.getStatus()==TaskStatus.IN_PROGRESS; }
+    public boolean isPaused() { return this.getStatus()==TaskStatus.PAUSED; }
+    public boolean isCompleted() { return this.getStatus()==TaskStatus.COMPLETED; }
+    public boolean isCanceled() { return this.getStatus()==TaskStatus.CANCELLED; }
+    public boolean isNotStarted() { return this.getStatus()==TaskStatus.NOT_STARTED; }
+
 
     // Вывод задачи в консоль
     @Override

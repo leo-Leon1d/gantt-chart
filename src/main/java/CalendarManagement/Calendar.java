@@ -8,19 +8,20 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 @Getter
 @Setter
 public class Calendar {
 
-    private Set<LocalDate> holidays; // Набор выходных дней/праздников
+    private List<LocalDate> holidays; // Набор выходных дней/праздников
     private int startHour; // Начало рабочего дня
     private int endHour; // Конец рабочего дня
     private int[] weekends; // Выходные
 
     // Конструктор с указанием графика работы и списка праздников
-    public Calendar(int startHour, int endHour, Set<LocalDate> holidays, int[] weekends) {
+    public Calendar(int startHour, int endHour, List<LocalDate> holidays, int[] weekends) {
         this.holidays = holidays;
         this.startHour = startHour;
         this.endHour = endHour;

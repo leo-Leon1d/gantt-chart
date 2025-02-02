@@ -1,4 +1,4 @@
-package com.example.demo.Application;
+package Application;
 
 import CalendarManagement.Calendar;
 import ProjectManagement.Project;
@@ -8,7 +8,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.lang.reflect.Array;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,9 +46,9 @@ public class GanttChartApplication {
 		int[] doer2Weekends = {5,6};
 		int[] doer3Weekends = {1,3,5,7};
 
-		Calendar doer1Calendar = new Calendar(9, 15, Set.of(LocalDate.of(2024, 10, 10)), doer1Weekends);
-		Calendar doer2Calendar = new Calendar(11, 17, Set.of(LocalDate.of(2024, 10, 10)), doer2Weekends);
-		Calendar doer3Calendar = new Calendar(10, 16, Set.of(LocalDate.of(2024, 10, 10)), doer3Weekends);
+		Calendar doer1Calendar = new Calendar(9, 15, List.of(LocalDate.of(2024, 10, 10)), doer1Weekends);
+		Calendar doer2Calendar = new Calendar(11, 17, List.of(LocalDate.of(2024, 10, 10)), doer2Weekends);
+		Calendar doer3Calendar = new Calendar(10, 16, List.of(LocalDate.of(2024, 10, 10)), doer3Weekends);
 		Calendar schoolProjectCalendar = new Calendar(9, 17, null, weekendsSatSun);
 
 		Resource doer1 = new Resource("Ben", doer1Calendar);
